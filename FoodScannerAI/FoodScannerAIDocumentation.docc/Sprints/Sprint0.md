@@ -1,5 +1,7 @@
 # Sprint 0 — Foundation & Architecture
 
+Setup the Project.
+
 ## Overview
 
 Sprint 0 established the professional foundation of FoodScannerAI.
