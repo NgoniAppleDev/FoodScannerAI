@@ -1,0 +1,25 @@
+name: Continuous Integration
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+        
+      - name: Build app
+        run: |
+            xcodebuild \
+            -project FoodScannerAI.xcodeproj \
+            -scheme FoodScannerAI \
+            -destination 'generic/platform=iOS' \
+            build
