@@ -18,10 +18,11 @@ jobs:
         
       - name: Build app
         run: |
-            xcodebuild \
+          xcodebuild \
             -project FoodScannerAI.xcodeproj \
             -scheme FoodScannerAI \
             -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
             build
             
       - name: Run tests
