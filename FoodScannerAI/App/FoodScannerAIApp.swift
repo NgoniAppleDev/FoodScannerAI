@@ -11,7 +11,7 @@ import SwiftUI
 struct FoodScannerAIApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
         }
     }
 }
