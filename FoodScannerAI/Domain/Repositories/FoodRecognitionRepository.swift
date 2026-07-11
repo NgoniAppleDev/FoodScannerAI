@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol FoodRecognitionRepository {
+protocol FoodRecognitionRepository: Sendable {
     
     func recognizeFood(from imageData: Data) async throws -> FoodPrediction
 }

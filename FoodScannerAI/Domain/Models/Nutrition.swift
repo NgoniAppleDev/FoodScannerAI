@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Nutrition: Sendable {
+nonisolated struct Nutrition: Sendable {
     let calories: Double
     let protein: Double
     let carbohydrates: Double

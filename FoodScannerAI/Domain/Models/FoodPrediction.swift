@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct FoodPrediction: Sendable {
+nonisolated struct FoodPrediction: Sendable {
     let foodName: String
     let confidence: Double
 }
