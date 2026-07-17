@@ -1,81 +1,97 @@
-
 # Sprint 1 — Image Processing Foundation
-
-Build the image-processing layer.
 
 ## Goal
 
-Build the image-processing layer required before integrating Vision and Core ML.
+Build the image-processing pipeline required before integrating Vision and Core ML.
 
-Rather than jumping directly into machine learning, this sprint focused on understanding how image data moves through Apple's frameworks.
+The objective was to understand how image data moves through Apple’s frameworks before introducing a trained model.
 
 ---
 
 ## What We Built
 
-## ImageConversionService
+ImageConversionService
 
-Created a protocol representing image conversion.
+Created:
 
-Responsibilities:
+```swift
+protocol ImageConversionService
+```
 
-- Accept raw image data.
-- Produce a CGImage.
-- Hide ImageIO implementation details.
+Responsibility:
 
-This follows Protocol-Oriented Programming and Dependency Injection principles.
-
----
-
-## CGImageConverter
-
-Implemented ImageConversionService using ImageIO.
+* Accept raw image data
+* Produce a CGImage
+* Hide ImageIO implementation details
 
 Pipeline:
 
 ```
 Data
-
-↓
-
+    ↓
 CGImageSource
-
-↓
-
+    ↓
 CGImage
 ```
 
-The converter is infrastructure and therefore marked:
+---
 
+### CGImageConverter
+
+Implemented:
+
+```swift
+CGImageConverter
+```
+
+using ImageIO.
+
+Responsibilities:
+
+* Convert image data
+* Validate image input
+* Throw application-level errors
+
+Infrastructure components were marked:
+
+```swift
 nonisolated
+```
 
-instead of @MainActor.
-
----
-
-## ImageConversionError
-
-Added domain-specific errors for conversion failures.
-
-Rather than exposing ImageIO errors directly, the converter throws application-level errors.
+because they do not manage UI state.
 
 ---
 
-## TestImageFactory
+### ImageConversionError
+
+Created application-level errors:
+
+Instead of exposing ImageIO errors directly:
+
+```swift
+ImageIO Error
+    ↓
+Application Error
+    ↓
+ImageConversionError
+```
+
+---
+
+### TestImageFactory
 
 Created an in-memory PNG generator.
 
-Advantages:
+Benefits:
 
-- No bundled test assets.
-- Fast.
-- Deterministic.
-- Repeatable.
-- Suitable for CI.
+* No bundled assets
+* Fast tests
+* Deterministic results
+* CI friendly
 
 ---
 
-## VisionFoodRecognitionService
+### VisionFoodRecognitionService
 
 Created the first Vision integration skeleton.
 
@@ -83,239 +99,130 @@ Current pipeline:
 
 ```
 Image Data
-
-↓
-
+    ↓
 ImageConversionService
-
-↓
-
+    ↓
 CGImage
-
-↓
-
+    ↓
 VNImageRequestHandler
-
-↓
-
-TODO: VNCoreMLRequest
-
-↓
-
-TODO: FoodPrediction
+    ↓
+VNCoreMLRequest
+    ↓
+FoodPrediction
 ```
 
-The service intentionally stops before connecting Core ML because no model exists yet.
+The final Core ML request was intentionally postponed because a model did not exist yet.
 
 ---
 
 ## Architecture Decisions
 
-## ImageConversionService
+### Protocol-Based Dependencies
 
-Chosen because image conversion is an independent responsibility.
+VisionFoodRecognitionService depends on:
 
-Future implementations could convert using different image representations while the rest of the application remains unchanged.
-
----
-
-## Dependency Injection
-
-VisionFoodRecognitionService depends upon:
-
-- any ImageConversionService
+```swift
+any ImageConversionService
+```
 
 instead of:
 
-- CGImageConverter
-
-This keeps the service testable and replaceable.
-
----
-
-## Swift 6 Actor Isolation
-
-Project default actor isolation:
-
-MainActor
-
-Infrastructure components opted out using:
-
-nonisolated
-
-Examples:
-
-- FoodPrediction
-- CGImageConverter
-- VisionFoodRecognitionService
-
-Reason:
-
-Image processing performs CPU work and owns no UI state.
-
----
-
-## Testing
-
-Implemented tests for:
-
-✓ PNG conversion succeeds
-
-✓ Invalid image data throws appropriate error
-
----
-
-## Detours & Concepts Learned
-
-## Services vs Repositories
-
-**Repository**:
-
-Provides application-facing access to capabilities or data.
-
-**Service**:
-
-Performs a specific operation.
-
-Examples:
-
-```
-FoodRecognitionRepository
-
-↓
-
-VisionFoodRecognitionService
-
-↓
-
-ImageConversionService
-
-↓
-
+```swift
 CGImageConverter
 ```
-
----
-
-## Why Protocol-Oriented Programming?
-
-Protocols define capabilities rather than implementations.
-
-The application depends on abstractions instead of concrete types.
 
 Benefits:
 
-- Dependency Injection
-- Easy testing
-- Flexible implementations
-- Decoupled architecture
+* Testability
+* Replaceable implementations
+* Dependency Injection
 
 ---
 
-## Why use `any`?
+### Swift 6 Actor Isolation
 
-Modern Swift requires existential types to be explicit.
+The project uses:
+
+```
+Default Actor Isolation: MainActor
+```
+
+Infrastructure components opt out:
+
+```swift
+nonisolated
+```
+
+because they:
+
+* Perform computation
+* Own no UI state
+* Do not require MainActor isolation
+
+---
+
+## Testing Completed
+
+Implemented:
+
+* PNG conversion succeeds
+* Invalid image data throws
+* Vision pipeline foundation builds successfully
+
+---
+
+## Concepts Learned
+
+### Repository vs Service
+
+**Repository:**
+
+Provides application-facing capabilities.
+
+**Service:**
+
+Performs a specific operation.
 
 Example:
 
-private let converter: any ImageConversionService
-
-Meaning:
-
-"Store any object conforming to this protocol."
-
----
-
-## Why use `nonisolated`?
-
-Default project isolation is MainActor.
-
-Image conversion:
-
-- owns no mutable UI state
-- performs CPU work
-
-Therefore it should not execute on MainActor.
-
----
-
-## Understanding Actors
-
-Actors protect mutable shared state.
-
-Instead of multiple threads mutating the same object simultaneously:
-
 ```
-Thread A
-
-↓
-
-Actor
-
-↑
-
-Thread B
-```
-
-Only one operation executes at a time.
-
-Our infrastructure components do not own mutable shared state, so actors were unnecessary.
-
----
-
-## Current Pipeline
-
-```
-Image Data
-
-↓
-
+FoodRecognitionRepository
+    ↓
+VisionFoodRecognitionService
+    ↓
+ImageConversionService
+    ↓
 CGImageConverter
-
-↓
-
-CGImage
-
-↓
-
-VNImageRequestHandler
-
-↓
-
-TODO: Core ML Model
-
-↓
-
-TODO: FoodPrediction
 ```
 
 ---
 
 ## Why Sprint 1 Stops Here
 
-A VNCoreMLRequest requires a VNCoreMLModel.
+Vision requires:
 
-That model comes from a compiled .mlmodel.
+```swift
+VNCoreMLModel
+```
 
-Since no model exists yet, completing the Vision request would be premature.
+which requires:
 
-Sprint 2 introduces the Core ML model before finishing the Vision pipeline.
+```
+.mlmodel
+```
+
+Without a trained model, completing inference would be premature.
 
 ---
 
 ## Looking Ahead
 
-Sprint 2
+Sprint 2 introduces:
 
-Core ML Model Integration
-
-Goals:
-
-- Understand .mlmodel files
-- Load models safely
-- Learn how Xcode generates Swift interfaces
-- Create a model loader
-- Connect Vision with Core ML
+* Core ML model loading
+* Model integration
+* Vision inference
+* Prediction conversion
 
 ---
 
@@ -323,19 +230,12 @@ Goals:
 
 ```
 main
-│
-├── Sprint 0
-│   ├── feat: create clean architecture project structure
-│   ├── feat: add domain models
-│   ├── feat: add repository contracts
-│   ├── feat: add dependency container
-│   ├── feat: add recognize food use case
-│   └── test: add recognize food use case tests
-│
+|
 └── feat/image-processing-service
-├── feat: add image conversion service protocol
-├── feat: implement cgimage converter
-├── test: add cgimage converter tests
-├── test: add png image factory
-└── feat: scaffold vision food recognition service
+        |
+        ├── feat: add image conversion service protocol
+        ├── feat: implement cgimage converter
+        ├── test: add cgimage converter tests
+        ├── test: add png image factory
+        └── feat: scaffold vision food recognition service
 ```

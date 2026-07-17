@@ -1,7 +1,5 @@
 # Sprint 0 — Foundation & Architecture
 
-Setup the Project.
-
 ## Overview
 
 Sprint 0 established the professional foundation of FoodScannerAI.
@@ -16,18 +14,17 @@ The objective was not to build machine learning functionality yet, but to design
 * Future App Store scale features
 
 > The guiding principle:
->
-> Build the architecture around the problem domain first, then introduce > technology.
+> 
+> Build the architecture around the problem domain first, then introduce technology.
 
 ---
 
-## Architecture Created
+## Initial Architecture Created
 
-The project structure:
+The project initially followed a Clean Architecture, layer-based approach.
 
 ```
 FoodScannerAI
-
 ├── App
 │
 ├── Core
@@ -49,21 +46,24 @@ FoodScannerAI
 │   └── Repositories
 │
 ├── Features
-│   ├── Camera
-│   ├── Scanner
-│   ├── Meals
-│   └── Dashboard
 │
 └── Documentation
 ```
 
+This created a separation between:
+
+* Business rules
+* Data implementations
+* Infrastructure
+* UI features
+
 ---
 
-## Domain Design
+### Domain Design
 
-The Domain layer represents the business language of the application.
+The Domain layer represented the business language of the application.
 
-It does not know about:
+It did not know about:
 
 * SwiftUI
 * UIKit
@@ -78,12 +78,12 @@ It does not know about:
 
 Represents a recognized food item.
 
-Example:
+Examples:
 
-Banana
-Pizza
-Rice
-Chicken
+* Banana
+* Pizza
+* Rice
+* Chicken
 
 ---
 
@@ -91,11 +91,11 @@ Chicken
 
 Represents nutritional information.
 
-Separated from Food because the same food can have different nutrition values depending on:
+Separated from Food because nutrition depends on:
 
-* portion size
-* preparation method
-* serving size
+* Portion size
+* Serving size
+* Preparation method
 
 ---
 
@@ -108,20 +108,17 @@ Example:
 ```
 Food:
 Banana
-
 Confidence:
 95%
 ```
 
-Important distinction:
-
 A prediction is not the same as a confirmed food item.
 
-The ML model produces predictions; the application decides what to do with them.
+The ML model produces predictions; application logic decides how to use them.
 
 ---
 
-## Repository Pattern
+### Repository Pattern
 
 Created:
 
@@ -135,17 +132,17 @@ Define what the application needs without defining how it happens.
 
 The Domain says:
 
-“**I need something that can recognize food.**”
+“I need something that can recognize food.”
 
-The Data layer later decides:
+The Data layer decides the implementation:
 
-* Core ML implementation
-* Remote API implementation
+* Core ML
+* Remote API
 * Mock implementation
 
 ---
 
-## Service Layer
+### Service Layer
 
 Created:
 
@@ -160,7 +157,6 @@ Represent operations that transform data.
 Examples:
 
 * Resize image
-* Normalize image
 * Convert image format
 * Prepare image for ML inference
 
@@ -168,27 +164,25 @@ Examples:
 
 ## Repository vs Service
 
-A key concept learned during Sprint 0:
-
 ### Repository
 
 > Answers:
 > 
-> Where does data come from?
+> Where does data or capability come from?
 
 Examples:
 
 * Database
 * API
-* ML model output
+* ML prediction
 
 ---
 
 ### Service
 
 > Answers:
->
-> What operation needs to be performed?
+> 
+> What operation needs to happen?
 
 Examples:
 
@@ -198,7 +192,7 @@ Examples:
 
 ---
 
-### Dependency Injection
+## Dependency Injection
 
 Created:
 
@@ -208,13 +202,9 @@ Core
 └── DependencyContainer
 ```
 
-The DependencyContainer will become the composition root.
+The DependencyContainer became the composition root.
 
-Its responsibility:
-
-Create and connect objects.
-
-Example future flow:
+Future flow:
 
 ```
 FoodScannerAIApp
@@ -227,7 +217,7 @@ RecognizeFoodUseCase
 ↓
 FoodRecognitionRepository
 ↓
-CoreMLFoodRecognitionRepository
+Core ML Implementation
 ```
 
 ---
@@ -244,7 +234,7 @@ Default Actor Isolation: MainActor
 
 Reason:
 
-Most application code interacts with UI:
+Application code commonly interacts with:
 
 * Views
 * ViewModels
@@ -252,11 +242,9 @@ Most application code interacts with UI:
 
 ---
 
-### Domain Models and nonisolated
+### Nonisolated Models
 
-A key discovery:
-
-Domain models should not accidentally become UI-bound.
+Domain values should not accidentally become UI-bound.
 
 Example:
 
@@ -264,11 +252,9 @@ Example:
 FoodPrediction
 ```
 
-is not UI state.
+can move between:
 
-It is a value that can move between:
-
-```
+```swift
 Background Task
 ↓
 FoodPrediction
@@ -276,39 +262,34 @@ FoodPrediction
 MainActor ViewModel
 ```
 
-Therefore:
+Therefore value types use:
 
 ```swift
-nonisolated + Sendable
+nonisolated
+Sendable
 ```
 
-was used.
+where appropriate.
 
 ---
 
 ### Actor Exploration
 
-We explored Swift actors after creating:
+Swift actors were explored after Swift 6 reported mutable state problems in:
 
 ```swift
 MockFoodRecognitionRepository
 ```
 
-Swift 6 warned about mutable state inside a Sendable class.
-
-The problem:
+The issue:
 
 ```swift
 var result
 ```
 
-could be changed simultaneously by multiple tasks.
+could be modified by multiple tasks.
 
-The solution:
-
-Use an actor.
-
-Actors protect mutable state by ensuring access happens sequentially.
+Actors protect mutable state by guaranteeing serialized access.
 
 Concept:
 
@@ -324,45 +305,39 @@ State mutation
 Task B waits
 ```
 
-This prevents data races.
-
 ---
 
-## Protocol-Oriented Programming Lessons
+## Protocol-Oriented Programming
 
-The key principle:
-
-Do not design around concrete objects.
-
-Instead design around capabilities.
+The project was designed around capabilities instead of concrete implementations.
 
 Instead of:
 
 ```
-ScannerViewModel
-|
-↓
-CoreMLClassifier
+ViewModel
+    |
+    ↓
+Concrete Class
 ```
 
-we designed:
+we use:
 
 ```
-ScannerViewModel
-|
-↓
+ViewModel
+    |
+    ↓
 Protocol
-|
-↓
-Any implementation
+    |
+    ↓
+Any Implementation
 ```
 
 Benefits:
 
 * Testing
-* Flexibility
 * Dependency Injection
-* Easier replacement of implementations
+* Flexibility
+* Easier replacement
 
 ---
 
@@ -370,23 +345,19 @@ Benefits:
 
 Test:
 
+```swift
+recognizeFoodReturnsPrediction()
 ```
-recognizeFoodReturnsPrediction
-```
 
-Purpose:
-
-Verify architecture before Core ML exists.
-
-Flow tested:
+Flow:
 
 ```
 Test
-↓
+    ↓
 RecognizeFoodUseCase
-↓
+    ↓
 MockFoodRecognitionRepository
-↓
+    ↓
 FoodPrediction
 ```
 
@@ -396,7 +367,7 @@ No:
 * Vision
 * Core ML
 
-needed.
+were required.
 
 ---
 
@@ -404,83 +375,52 @@ needed.
 
 Completed:
 
-- [x] Project architecture
-- [x] Domain layer
-- [x] Repository contract
-- [x] Service contract
-- [x] Use case layer
-- [x] Dependency injection foundation
-- [x] Swift concurrency decisions
-- [x] First Swift Testing test
-
-The application now has a professional foundation.
+* Project foundation
+* Domain models
+* Repository contracts
+* Service contracts
+* Use case layer
+* Dependency injection foundation
+* Swift concurrency decisions
+* First Swift Testing test
 
 ---
 
-## Git History
+Architecture Evolution
 
-Sprint 0 commit flow:
+Later, the project evolved from a layer-based architecture into a feature-based architecture.
+
+The principles remained the same:
+
+* Separation of concerns
+* Dependency inversion
+* Testability
+* Clear ownership
+
+The final architecture became:
+
+```
+App
+Core
+Features
+Shared
+```
+
+with Clean Architecture applied inside features.
+
+## Git History
 
 ```
 main
 |
-|
 └── feat/project-foundation
         |
-        |
         ├── feat: create project foundation
-        |
         ├── feat: add food domain models
-        |
         ├── feat: add food recognition repository contract
-        |
         ├── feat: add image processing service contract
-        |
         ├── feat: add dependency container foundation
-        |
         ├── feat: add recognize food use case
-        |
         ├── test: add food recognition use case test
-        |
-        └── feat: establish clean architecture foundation for FoodScannerAI
-                |
-                |
-                PR
-                |
-                ↓
-            develop
+        └── feat: establish clean architecture foundation
 ```
-
----
-
-## Next Sprint
-
-### Sprint 1 — Image Pipeline
-
-Goal:
-
-Teach the iPhone to see.
-
-Pipeline:
-
-```
-Camera
-↓
-Image Data
-↓
-Image Processing
-↓
-Vision
-↓
-Core ML
-↓
-Food Prediction
-```
-
-Technologies introduced:
-
-* AVFoundation
-* Vision
-* Core ML image handling
-* Image preprocessing
-* ML inference pipeline
