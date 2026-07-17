@@ -1,2 +1,24 @@
-FocusFlow.xcodeproj/project.xcworkspace/
-FocusFlow.xcodeproj/xcuserdata/
+# Xcode
+DerivedData/
+*.xcuserstate
+*.xcuserdata/
+
+# Build products
+build/
+*.build/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# Core ML generated files
+*.mlmodelc/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
